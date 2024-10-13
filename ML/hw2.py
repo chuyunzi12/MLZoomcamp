@@ -1,128 +1,193 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.utils import shuffle
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import train_test_split
 import numpy as np
+import seaborn as sns
 
 df = pd.read_csv('D:/MLZoomcamp/laptops.csv')
 df.columns = df.columns.str.lower().str.replace(' ', '_')
-df_filtered = df[['ram', 'storage', 'screen', 'final_price']]
 
-#EDA
-plt.hist(df_filtered['final_price'], bins=50)
-plt.show()
+sns.histplot(df['final_price'])
+df.describe()
 
-# #q1
-# df_filtered.isnull().sum()
-#
-# #q2
-# df_filtered['ram'].median()
-#
-# #q3
-# df_shuffled = shuffle(df_filtered, random_state=42)
-#
-# n = len(df_shuffled)
-# n_train = int(n * 0.6)
-# n_val = int(n * 0.2)
-# n_test = n - n_train - n_val
-#
-# df_train = df_shuffled[:n_train]
-# df_val = df_shuffled[n_train:n_train+n_val]
-# df_test = df_shuffled[n_train+n_val:]
-# ## with 0
-# df_train_0 = df_train.fillna(0)
-# df_val_0 = df_val.fillna(0)
-# ## with mean
-# mean_val = df_train.mean()
-# df_train_mean = df_train.fillna(mean_val)
-# df_val_mean = df_val.fillna(mean_val)
-#
-# def train_model(df_train, df_val):
-#     X_train = df_train[['ram', 'storage', 'screen']]
-#     y_train = df_train['final_price']
-#
-#     X_val = df_val[['ram', 'storage', 'screen']]
-#     y_val = df_val['final_price']
-#
-#     model = LinearRegression()
-#     model.fit(X_train, y_train)
-#     predictions = model.predict(X_val)
-#     rmse = np.sqrt(mean_squared_error(y_val, predictions))
-#     return rmse
-#
-# rmse_0 = train_model(df_train_0, df_val_0)
-# rmse_mean = train_model(df_train_mean, df_val_mean)
-#
-# print('RMSE with 0:', round(rmse_0, 2))
-# print('RMSE with mean:', round(rmse_mean, 2))
-#
-# #q4
-# def train_ridge_model(df_train, df_val, r):
-#     X_train = df_train[['ram', 'storage', 'screen']]
-#     y_train = df_train['final_price']
-#
-#     X_val = df_val[['ram', 'storage', 'screen']]
-#     y_val = df_val['final_price']
-#
-#     model = Ridge(alpha=r)
-#     model.fit(X_train, y_train)
-#     predictions = model.predict(X_val)
-#     rmse = np.sqrt(mean_squared_error(y_val, predictions))
-#     return rmse
-#
-# r_values = [0, 0.01, 0.1, 1, 5, 10, 100]
-# for r in r_values:
-#     rmse = train_ridge_model(df_train_0, df_val_0, r)
-#     print(f'RMSE for r={r}:', round(rmse, 2))
-# #q5
-# seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-# rmses = []
-#
-# for seed in seeds:
-#     df_shuffled = shuffle(df_filtered, random_state=seed)
-#
-#     # Train/Val/Test split
-#     df_train = df_shuffled[:n_train]
-#     df_val = df_shuffled[n_train:n_train+n_val]
-#
-#     # Train model
-#     rmse = train_model(df_train.fillna(0), df_val.fillna(0))
-#     rmses.append(rmse)
-#
-# std = np.std(rmses)
-# print('Standard Deviation:', round(std, 3))
+columns = [
+    'ram',
+    'storage',
+    'screen',
+    'final_price'
+]
 
-#q6
+df = df[columns]
+df.isnull().sum()
+df['ram'].median()
 
-# Split the data into train (60%), validation (20%), and test (20%)
-train_data, temp_data = train_test_split(df_filtered, test_size=0.4, random_state=9)
-val_data, test_data = train_test_split(temp_data, test_size=0.5, random_state=9)
+n = len(df)
 
-# Combine train and validation datasets
-train_val_data = pd.concat([train_data, val_data])
+n_val = int(0.2 * n)
+n_test = int(0.2 * n)
+n_train = n - (n_val + n_test)
 
-train_val_data_0 = train_val_data.fillna(0)
-test_data_0 = test_data.fillna(0)
+idx = np.arange(n)
+np.random.seed(42)
+np.random.shuffle(idx)
 
-# Train a Ridge regression model with r=0.001 and evaluate on the test set
-ridge_model = Ridge(alpha=0.001)
-X_train_val = train_val_data_0[['ram', 'storage', 'screen']]
-y_train_val = train_val_data_0['final_price']
+df_shuffled = df.iloc[idx]
 
-X_test = test_data_0[['ram', 'storage', 'screen']]
-y_test = test_data_0['final_price']
+df_train = df_shuffled.iloc[:n_train].copy()
+df_val = df_shuffled.iloc[n_train:n_train+n_val].copy()
+df_test = df_shuffled.iloc[n_train+n_val:].copy()
 
-# Fit the model
-ridge_model.fit(X_train_val, y_train_val)
+df_train = df_train.reset_index(drop=True)
+df_val = df_val.reset_index(drop=True)
+df_test = df_test.reset_index(drop=True)
 
-# Make predictions on the test set
-test_predictions = ridge_model.predict(X_test)
+y_train = df_train.final_price.values
+y_val = df_val.final_price.values
+y_test = df_test.final_price.values
 
-# Calculate RMSE on the test set
-rmse_test = np.sqrt(mean_squared_error(y_test, test_predictions))
+del df_train['final_price']
+del df_val['final_price']
+del df_test['final_price']
 
-# Output the RMSE result
-print('Test RMSE:', round(rmse_test, 2))
+
+def train_linear_regression(X, y):
+    ones = np.ones(X.shape[0])
+    X = np.column_stack([ones, X])
+
+    XTX = X.T.dot(X)
+    XTX_inv = np.linalg.inv(XTX)
+    w = XTX_inv.dot(X.T).dot(y)
+
+    return w[0], w[1:]
+
+
+def prepare_X(df, fillna_value):
+    df = df.fillna(fillna_value)
+    X = df.values
+    return X
+
+
+def rmse(y, y_pred):
+    error = y_pred - y
+    mse = (error ** 2).mean()
+    return np.sqrt(mse)
+
+mean = df_train.ram.mean()
+
+X_train = prepare_X(df_train, fillna_value=mean)
+w_0, w = train_linear_regression(X_train, y_train)
+
+X_val = prepare_X(df_val, fillna_value=mean)
+y_pred = w_0 + X_val.dot(w)
+
+rmse(y_val, y_pred)
+
+X_train = prepare_X(df_train, fillna_value=0)
+w_0, w = train_linear_regression(X_train, y_train)
+
+X_val = prepare_X(df_val, fillna_value=0)
+y_pred = w_0 + X_val.dot(w)
+
+rmse(y_val, y_pred)
+
+
+def train_linear_regression_reg(X, y, r=0.0):
+    ones = np.ones(X.shape[0])
+    X = np.column_stack([ones, X])
+
+    XTX = X.T.dot(X)
+    reg = r * np.eye(XTX.shape[0])
+    XTX = XTX + reg
+
+    XTX_inv = np.linalg.inv(XTX)
+    w = XTX_inv.dot(X.T).dot(y)
+
+    return w[0], w[1:]
+
+for r in [0, 0.01, 1, 10, 100]:
+    w_0, w = train_linear_regression_reg(X_train, y_train, r=r)
+    y_pred = w_0 + X_val.dot(w)
+    rmse_val = rmse(y_val, y_pred)
+    print('%06s %0.2f' % (r, rmse_val))
+
+rmses = []
+
+for s in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]:
+    n = len(df)
+
+    n_val = int(0.2 * n)
+    n_test = int(0.2 * n)
+    n_train = n - (n_val + n_test)
+
+    idx = np.arange(n)
+    np.random.seed(s)
+    np.random.shuffle(idx)
+
+    df_shuffled = df.iloc[idx]
+
+    df_train = df_shuffled.iloc[:n_train].copy()
+    df_val = df_shuffled.iloc[n_train:n_train + n_val].copy()
+    df_test = df_shuffled.iloc[n_train + n_val:].copy()
+
+    df_train = df_train.reset_index(drop=True)
+    df_val = df_val.reset_index(drop=True)
+    df_test = df_test.reset_index(drop=True)
+
+    y_train = df_train.final_price.values
+    y_val = df_val.final_price.values
+    y_test = df_test.final_price.values
+
+    del df_train['final_price']
+    del df_val['final_price']
+    del df_test['final_price']
+
+    X_train = prepare_X(df_train, fillna_value=0)
+    w_0, w = train_linear_regression(X_train, y_train)
+
+    X_val = prepare_X(df_val, fillna_value=0)
+    y_pred = w_0 + X_val.dot(w)
+
+    result = rmse(y_val, y_pred)
+    print(s, result)
+
+    rmses.append(result)
+np.std(rmses)
+
+n = len(df)
+
+n_val = int(0.2 * n)
+n_test = int(0.2 * n)
+n_train = n - (n_val + n_test)
+
+idx = np.arange(n)
+np.random.seed(9)
+np.random.shuffle(idx)
+
+df_shuffled = df.iloc[idx]
+
+df_train = df_shuffled.iloc[:n_train].copy()
+df_val = df_shuffled.iloc[n_train:n_train+n_val].copy()
+df_test = df_shuffled.iloc[n_train+n_val:].copy()
+
+df_train = df_train.reset_index(drop=True)
+df_val = df_val.reset_index(drop=True)
+df_test = df_test.reset_index(drop=True)
+
+y_train = df_train.final_price.values
+y_val = df_val.final_price.values
+y_test = df_test.final_price.values
+
+del df_train['final_price']
+del df_val['final_price']
+del df_test['final_price']
+df_full_train = pd.concat([df_train, df_val])
+df_full_train = df_full_train.reset_index(drop=True)
+
+X_full_train = prepare_X(df_full_train, fillna_value=0)
+y_full_train = np.concatenate([y_train, y_val])
+w_0, w = train_linear_regression_reg(X_full_train, y_full_train, r=0.001)
+
+X_test = prepare_X(df_test, fillna_value=0)
+y_pred = w_0 + X_test.dot(w)
+
+result = rmse(y_test, y_pred)
+print(result)
